@@ -4,14 +4,17 @@ import { useCamera } from './hooks/useCamera';
 import { useIntervalProcessing } from './hooks/useIntervalProcessing';
 import { sendChatCompletionRequest } from './utils/api';
 
+// const url = 'http://localhost:8080';
+const url = 'http://10.0.7.236:1234';
+
 function App() {
   // State for user input and app status
-  const [instruction, setInstruction] = useState('What do you see? Create a short description of the image.');
+  const [instruction, setInstruction] = useState('What do you see? Create a short description of the image. Please respond in Japanese.');
   const [responseText, setResponseText] = useState('Camera access granted. Ready to start.');
   const [isProcessing, setIsProcessing] = useState(false);
   const [intervalMs, setIntervalMs] = useState(500);
-  const [baseURL, setBaseURL] = useState('http://localhost:8080');
-  const [fps, setFps] = useState(0);
+  const [baseURL, setBaseURL] = useState(url);
+  // const [fps, setFps] = useState(0);
 
   // FPS tracking refs
   const frameCountRef = useRef(0);
@@ -22,13 +25,13 @@ function App() {
 
   // Send data to server
   async function processFrame() {
-    console.log('processFrame called'); // DEBUG
+    // console.log('processFrame called'); // DEBUG
     // FPS counting
     frameCountRef.current += 1;
     const now = Date.now();
     if (now - lastFpsUpdateRef.current >= 1000) {
       console.log('FPS updated', frameCountRef.current); // DEBUG
-      setFps(frameCountRef.current);
+      // setFps(frameCountRef.current);
       frameCountRef.current = 0;
       lastFpsUpdateRef.current = now;
     }

@@ -4,6 +4,7 @@ export async function sendChatCompletionRequest(
   imageBase64URL: string
 ): Promise<string> {
   try {
+    // const response = await fetch(`${baseURL}/v1/chat/completions`, {
     const response = await fetch(`${baseURL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
