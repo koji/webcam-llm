@@ -124,21 +124,6 @@ function App() {
           </button>
         </div>
       </div>
-      {/* Sidebar */}
-      <aside style={{ width: 320, marginLeft: 24, padding: 16, background: '#f7f7fa', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', minHeight: 400 }}>
-        <h2 style={{ fontSize: '1.2em', marginBottom: 12 }}>Last Sent Image & Response</h2>
-        {lastImage ? (
-          <img src={lastImage} alt="Last sent" style={{ width: '100%', borderRadius: 4, marginBottom: 12, background: '#eee' }} />
-        ) : (
-          <div style={{ width: '100%', height: 180, background: '#eee', borderRadius: 4, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>
-            No image sent yet
-          </div>
-        )}
-        <div style={{ fontWeight: 'bold', marginBottom: 4 }}>LLM Response:</div>
-        <div style={{ whiteSpace: 'pre-wrap', background: '#fff', borderRadius: 4, padding: 8, minHeight: 60, border: '1px solid #e0e0e0' }}>
-          {lastLLMResponse || 'No response yet'}
-        </div>
-      </aside>
     </div>
   );
 }
