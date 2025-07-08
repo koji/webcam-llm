@@ -106,7 +106,7 @@ function App() {
           </div>
           <div>
             <label htmlFor="responseText">Response:</label><br />
-            <textarea id="responseText" style={{ height: '2em', width: '40em' }} name="Response" readOnly placeholder="Server response will appear here..." value={responseText}></textarea>
+            <textarea id="responseText" style={{ height: '20em', width: '40em' }} name="Response" readOnly placeholder="Server response will appear here..." value={responseText}></textarea>
           </div>
         </div>
 
