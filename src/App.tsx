@@ -4,45 +4,58 @@ import { useCamera } from './hooks/useCamera';
 import { useIntervalProcessing } from './hooks/useIntervalProcessing';
 import { sendChatCompletionRequest } from './utils/api';
 
-// const url = 'http://localhost:8080';
-const url = 'http://10.0.7.236:1234';
-
 function App() {
   // State for user input and app status
   const [instruction, setInstruction] = useState('What do you see? Create a short description of the image. Please respond in Japanese.');
   const [responseText, setResponseText] = useState('Camera access granted. Ready to start.');
   const [isProcessing, setIsProcessing] = useState(false);
   const [intervalMs, setIntervalMs] = useState(500);
-  const [baseURL, setBaseURL] = useState(url);
-  // const [fps, setFps] = useState(0);
+  const [baseURL, setBaseURL] = useState('http://10.0.7.236:1234');
+  const [fps, setFps] = useState(0);
+
+  // Sidebar state
+  const [lastImage, setLastImage] = useState<string | null>(null);
+  const [lastLLMResponse, setLastLLMResponse] = useState<string | null>(null);
 
   // FPS tracking refs
   const frameCountRef = useRef(0);
   const lastFpsUpdateRef = useRef(Date.now());
 
+  // Frame skip ref
+  const isProcessingFrameRef = useRef(false);
+
   // Camera hook
   const { videoRef, canvasRef, captureImage, cameraError } = useCamera();
 
-  // Send data to server
+  // Send data to server with frame skip
   async function processFrame() {
-    // console.log('processFrame called'); // DEBUG
-    // FPS counting
+    if (isProcessingFrameRef.current) {
+      // Skip this frame if previous is still processing
+      return;
+    }
+    isProcessingFrameRef.current = true;
+
     frameCountRef.current += 1;
     const now = Date.now();
     if (now - lastFpsUpdateRef.current >= 1000) {
-      console.log('FPS updated', frameCountRef.current); // DEBUG
-      // setFps(frameCountRef.current);
+      setFps(frameCountRef.current);
       frameCountRef.current = 0;
       lastFpsUpdateRef.current = now;
     }
 
-    const imageBase64URL = captureImage();
-    if (!imageBase64URL) {
-      setResponseText('Failed to capture image. Stream might not be active.');
-      return;
+    try {
+      const imageBase64URL = captureImage();
+      if (!imageBase64URL) {
+        setResponseText('Failed to capture image. Stream might not be active.');
+        return;
+      }
+      setLastImage(imageBase64URL); // Update sidebar image
+      const response = await sendChatCompletionRequest(baseURL, instruction, imageBase64URL);
+      setResponseText(response);
+      setLastLLMResponse(response); // Update sidebar response
+    } finally {
+      isProcessingFrameRef.current = false;
     }
-    const response = await sendChatCompletionRequest(baseURL, instruction, imageBase64URL);
-    setResponseText(response);
   }
 
   // Interval processing hook
@@ -70,45 +83,63 @@ function App() {
   }
 
   return (
-    <>
-      <h1 className='title'>Camera Interaction App</h1>
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+      {/* Main content */}
+      <div style={{ flex: 1 }}>
+        <h1 className='title'>Camera Interaction App</h1>
 
-      <video ref={videoRef} id="videoFeed" autoPlay playsInline></video>
-      <canvas ref={canvasRef} id="canvas" className="hidden"></canvas>
+        <video ref={videoRef} id="videoFeed" autoPlay playsInline></video>
+        <canvas ref={canvasRef} id="canvas" className="hidden"></canvas>
 
-      {/* <div style={{ margin: '8px 0', fontWeight: 'bold' }}>
-        FPS: {fps} <span style={{ fontWeight: 'normal', fontSize: '0.9em' }}>(use a shorter interval for more accurate FPS)</span>
-      </div> */}
-
-      <div className="io-areas">
-        <div>
-          <label htmlFor="baseURL">Base API:</label><br />
-          <input id="baseURL" name="Instruction" value={baseURL} onChange={(e) => setBaseURL(e.target.value)} />
+        <div style={{ margin: '8px 0', fontWeight: 'bold' }}>
+          FPS: {fps} <span style={{ fontWeight: 'normal', fontSize: '0.9em' }}>(use a shorter interval for more accurate FPS)</span>
         </div>
-        <div>
-          <label htmlFor="instructionText">Instruction:</label><br />
-          <textarea id="instructionText" style={{ height: '2em', width: '40em' }} name="Instruction" value={instruction} onChange={(e) => setInstruction(e.target.value)} disabled={isProcessing}></textarea>
+
+        <div className="io-areas">
+          <div>
+            <label htmlFor="baseURL">Base API:</label><br />
+            <input id="baseURL" name="Instruction" value={baseURL} onChange={(e) => setBaseURL(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="instructionText">Instruction:</label><br />
+            <textarea id="instructionText" style={{ height: '2em', width: '40em' }} name="Instruction" value={instruction} onChange={(e) => setInstruction(e.target.value)} disabled={isProcessing}></textarea>
+          </div>
+          <div>
+            <label htmlFor="responseText">Response:</label><br />
+            <textarea id="responseText" style={{ height: '2em', width: '40em' }} name="Response" readOnly placeholder="Server response will appear here..." value={responseText}></textarea>
+          </div>
         </div>
-        <div>
-          <label htmlFor="responseText">Response:</label><br />
-          <textarea id="responseText" style={{ height: '2em', width: '40em' }} name="Response" readOnly placeholder="Server response will appear here..." value={responseText}></textarea>
+
+        <div className="controls">
+          <label htmlFor="intervalSelect">Interval between 2 requests:</label>
+          <select id="intervalSelect" name="Interval between 2 requests" value={intervalMs} onChange={(e) => setIntervalMs(parseInt(e.target.value, 10))} disabled={isProcessing}>
+            <option value="100">100ms</option>
+            <option value="250">250ms</option>
+            <option value="500">500ms</option>
+            <option value="1000">1s</option>
+            <option value="2000">2s</option>
+          </select>
+          <button id="startButton" className={isProcessing ? 'stop' : 'start'} onClick={handleStartStopClick}>
+            {isProcessing ? 'Stop' : 'Start'}
+          </button>
         </div>
       </div>
-
-      <div className="controls">
-        <label htmlFor="intervalSelect">Interval between 2 requests:</label>
-        <select id="intervalSelect" name="Interval between 2 requests" value={intervalMs} onChange={(e) => setIntervalMs(parseInt(e.target.value, 10))} disabled={isProcessing}>
-          <option value="100">100ms</option>
-          <option value="250">250ms</option>
-          <option value="500">500ms</option>
-          <option value="1000">1s</option>
-          <option value="2000">2s</option>
-        </select>
-        <button id="startButton" className={isProcessing ? 'stop' : 'start'} onClick={handleStartStopClick}>
-          {isProcessing ? 'Stop' : 'Start'}
-        </button>
-      </div>
-    </>
+      {/* Sidebar */}
+      <aside style={{ width: 320, marginLeft: 24, padding: 16, background: '#f7f7fa', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', minHeight: 400 }}>
+        <h2 style={{ fontSize: '1.2em', marginBottom: 12 }}>Last Sent Image & Response</h2>
+        {lastImage ? (
+          <img src={lastImage} alt="Last sent" style={{ width: '100%', borderRadius: 4, marginBottom: 12, background: '#eee' }} />
+        ) : (
+          <div style={{ width: '100%', height: 180, background: '#eee', borderRadius: 4, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa' }}>
+            No image sent yet
+          </div>
+        )}
+        <div style={{ fontWeight: 'bold', marginBottom: 4 }}>LLM Response:</div>
+        <div style={{ whiteSpace: 'pre-wrap', background: '#fff', borderRadius: 4, padding: 8, minHeight: 60, border: '1px solid #e0e0e0' }}>
+          {lastLLMResponse || 'No response yet'}
+        </div>
+      </aside>
+    </div>
   );
 }
 
