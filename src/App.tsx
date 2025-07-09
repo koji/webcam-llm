@@ -49,6 +49,8 @@ function App() {
       }
       const response = await sendChatCompletionRequest(baseURL, instruction, imageBase64URL);
       setResponseText(response);
+    } catch (error) {
+      setResponseText(`Error: ${error}`);
     } finally {
       isProcessingFrameRef.current = false;
     }
