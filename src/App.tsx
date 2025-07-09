@@ -4,18 +4,16 @@ import { useCamera } from './hooks/useCamera';
 import { useIntervalProcessing } from './hooks/useIntervalProcessing';
 import { sendChatCompletionRequest } from './utils/api';
 
+const localHost = 'lm_studio_url'
+
 function App() {
   // State for user input and app status
   const [instruction, setInstruction] = useState('What do you see? Create a short description of the image. Please respond in Japanese.');
   const [responseText, setResponseText] = useState('Camera access granted. Ready to start.');
   const [isProcessing, setIsProcessing] = useState(false);
   const [intervalMs, setIntervalMs] = useState(500);
-  const [baseURL, setBaseURL] = useState('http://10.0.7.236:1234');
+  const [baseURL, setBaseURL] = useState(localHost);
   const [fps, setFps] = useState(0);
-
-  // Sidebar state
-  const [lastImage, setLastImage] = useState<string | null>(null);
-  const [lastLLMResponse, setLastLLMResponse] = useState<string | null>(null);
 
   // FPS tracking refs
   const frameCountRef = useRef(0);
@@ -49,10 +47,8 @@ function App() {
         setResponseText('Failed to capture image. Stream might not be active.');
         return;
       }
-      setLastImage(imageBase64URL); // Update sidebar image
       const response = await sendChatCompletionRequest(baseURL, instruction, imageBase64URL);
       setResponseText(response);
-      setLastLLMResponse(response); // Update sidebar response
     } finally {
       isProcessingFrameRef.current = false;
     }
