@@ -50,7 +50,8 @@ function App() {
       const response = await sendChatCompletionRequest(baseURL, instruction, imageBase64URL);
       setResponseText(response);
     } catch (error) {
-      setResponseText(`Error: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setResponseText(`Error: ${errorMessage}`);
     } finally {
       isProcessingFrameRef.current = false;
     }
